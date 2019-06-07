@@ -1,4 +1,4 @@
-package main
+package coursecreation
 
 import (
 	"bytes"
@@ -24,21 +24,21 @@ func createTestMicroserviceCourseCreation() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/notification_management/api/v1.0/course", resthandler.NewCourse).Methods(http.MethodPost)
 	return r
-	}
+}
 
 func setup() {
-	config.SetConfiguration("../config/config-test.json")
+	config.SetConfiguration("../../../config/config-test.json")
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseItem{CourseName:"testexistentcourse_testdepartment_2018-2019"}
+	courseItem := repository.CourseItem{CourseName: "testexistentcourse_testdepartment_2018-2019"}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
 	}
 	client := dynamodb.New(newSession)
 	input := &dynamodb.PutItemInput{
-		Item:marshaledCourse,
+		Item:      marshaledCourse,
 		TableName: aws.String(config.Configuration.CoursesTableName),
 	}
 	_, err = client.PutItem(input)

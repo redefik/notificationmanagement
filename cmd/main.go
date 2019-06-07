@@ -30,5 +30,6 @@ func main() {
 	// Register the handlers for the various HTTP requests
 	r.HandleFunc("/", healthCheck).Methods(http.MethodGet)
 	r.HandleFunc("/notification_management/api/v1.0/course", resthandler.NewCourse).Methods(http.MethodPost)
+	r.HandleFunc("/notification_management/api/v1.0/course", resthandler.DeleteCourse).Methods(http.MethodDelete)
 	log.Fatal(http.ListenAndServe(config.Configuration.ListeningAddress, r))
 }

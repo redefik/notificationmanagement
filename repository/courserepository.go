@@ -19,6 +19,7 @@ var dynamodbClient *dynamodb.DynamoDB
 // Ad hoc errors returned by the functions
 var UnknownError = errors.New("an unknown error occurred during the interaction with course data store")
 var ConflictError = errors.New("a course with the provided information already exists")
+var NotFoundError = errors.New("the provided course does not exist in the data store")
 
 // Encapsulates the fields of the DynamoDB item representing a course
 type CourseItem struct {
@@ -34,19 +35,21 @@ func InitializeDynamoDbClient() {
 	dynamodbClient = dynamodb.New(sessionInitializer)
 }
 
-// Add a course to the data store returning a not-nil value in case of error
+// Add a course to the data store returning a not-nil value in case of error:
+// - ConflictError it the caller try to create an existent course
+// - UnknownError otherwise
 func CreateCourse(course entity.Course) error {
 	// Convert the course in the format read by dynamodb
-	courseItem := CourseItem{CourseName:course.Name + "_" + course.Department + "_" + course.Year} // Name, Department and Year acts as a composite key
+	courseItem := CourseItem{CourseName: course.Name + "_" + course.Department + "_" + course.Year} // Name, Department and Year acts as a composite key
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		return UnknownError
 	}
 	// Build the request for DynamoDB
 	putItemInput := &dynamodb.PutItemInput{
-		Item: marshaledCourse,
+		Item:                marshaledCourse,
 		ConditionExpression: aws.String("attribute_not_exists(CourseName)"),
-		TableName: aws.String(config.Configuration.CoursesTableName),
+		TableName:           aws.String(config.Configuration.CoursesTableName),
 	}
 	_, err = dynamodbClient.PutItem(putItemInput)
 	if err != nil {
@@ -57,6 +60,37 @@ func CreateCourse(course entity.Course) error {
 			// raised when the client try to create a course that already exists
 			case dynamodb.ErrCodeConditionalCheckFailedException:
 				return ConflictError
+			default:
+				return UnknownError
+			}
+		}
+		return UnknownError
+	}
+	return nil
+}
+
+// Delete the given course from the data store returning a not-nil value in case of error:
+// - NotFoundError when the caller try to delete a not existent course
+// - UnknownError otherwise
+func DeleteCourse(course entity.Course) error {
+	deleteItemInput := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"CourseName": {
+				S: aws.String(course.Name + "_" + course.Department + "_" + course.Year),
+			},
+		},
+		ConditionExpression: aws.String("attribute_exists(CourseName)"),
+		TableName:           aws.String(config.Configuration.CoursesTableName),
+	}
+	_, err := dynamodbClient.DeleteItem(deleteItemInput)
+	if err != nil {
+		// check if AWS DynamoDB raised an error
+		awsError, ok := err.(awserr.Error)
+		if ok {
+			switch awsError.Code() {
+			// raised when the given course does not exist in the data store
+			case dynamodb.ErrCodeConditionalCheckFailedException:
+				return NotFoundError
 			default:
 				return UnknownError
 			}

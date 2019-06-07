@@ -91,3 +91,45 @@ func NewCourse(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write(responseBody)
 }
+
+// DeleteCourse delete the provided course from the data store.
+func DeleteCourse(w http.ResponseWriter, r *http.Request) {
+	var requestBody entity.Course
+
+	//Parse the body of the request
+	jsonDecoder := json.NewDecoder(r.Body)
+	err := jsonDecoder.Decode(&requestBody)
+	if err != nil {
+		MakeErrorResponse(w, http.StatusBadRequest, "Bad request")
+		log.Println("Bad Request")
+		return
+	}
+
+	// Check if all the required fields have been provided in the request
+	requestBody.Name = strings.TrimSpace(requestBody.Name)
+	requestBody.Department = strings.TrimSpace(requestBody.Department)
+	requestBody.Year = strings.TrimSpace(requestBody.Year)
+
+	if !isValidCourseCreationBody(requestBody) {
+		MakeErrorResponse(w, http.StatusBadRequest, "Bad request")
+		log.Println("Bad Request")
+		return
+	}
+
+	// Try to create the course
+	err = repository.DeleteCourse(requestBody)
+	if err != nil {
+		// On error an appropriated status code is returned
+		if err == repository.NotFoundError {
+			MakeErrorResponse(w, http.StatusNotFound, "Course Not Found")
+			log.Println(err)
+			return
+		} else if err == repository.UnknownError {
+			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			log.Println(err)
+			return
+		}
+	}
+	// On success 200 OK is returned
+	w.WriteHeader(http.StatusOK)
+}
