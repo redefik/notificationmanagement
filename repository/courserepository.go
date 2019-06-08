@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/redefik/notificationmanagement/config"
 	"github.com/redefik/notificationmanagement/entity"
+	"log"
 )
 
 /*This package provides a set of functionality used to interact with the persistence layer
@@ -97,5 +98,58 @@ func DeleteCourse(course entity.Course) error {
 		}
 		return UnknownError
 	}
+	return nil
+}
+
+// Add the provided mail to the list of mail address associated to the given course. So the student will receive news
+// about the course. The function returns a not-nil value in case of error:
+// - NotFoundError when the caller try to update a not existent course
+// - UnknownError otherwise
+func AddStudent(course entity.Course, studentMail string) error {
+	newMail := &dynamodb.AttributeValue{
+		S: aws.String(studentMail),
+	}
+	var mailList []*dynamodb.AttributeValue
+	// the mail address will be appended to the mailing list of the course.
+	// it must be embedded inside a slice
+	mailList = append(mailList, newMail)
+
+	updateItemInput := &dynamodb.UpdateItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"CourseName": {S: aws.String(course.Name + "_" + course.Department + "_" + course.Year)},
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":mail": {
+				L: mailList,
+			},
+			":empty_list": {
+				// this must be provided for the first mail, when the list does not exist yet
+				L: []*dynamodb.AttributeValue{},
+			},
+		},
+		ConditionExpression: aws.String("attribute_exists(CourseName)"),
+		UpdateExpression:    aws.String("SET mailingList = list_append(if_not_exists(mailingList, :empty_list), :mail)"),
+		TableName:           aws.String(config.Configuration.CoursesTableName),
+	}
+
+	_, err := dynamodbClient.UpdateItem(updateItemInput)
+	if err != nil {
+		log.Println(err.(awserr.Error))
+		// check if AWS DynamoDB raised an error
+		awsError, ok := err.(awserr.Error)
+		if ok {
+			errorCode := awsError.Code()
+			log.Println(errorCode)
+			switch awsError.Code() {
+			// raised when the given course does not exist in the data store
+			case dynamodb.ErrCodeConditionalCheckFailedException:
+				return NotFoundError
+			default:
+				return UnknownError
+			}
+		}
+		return UnknownError
+	}
+
 	return nil
 }
