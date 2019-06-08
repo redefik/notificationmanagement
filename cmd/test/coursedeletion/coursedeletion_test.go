@@ -31,7 +31,7 @@ func setup() {
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseItem{CourseName: "testcoursedeletion_testdepartment_2018-2019"}
+	courseItem := repository.CourseCreationItem{CourseName: "testcoursedeletion_testdepartment_2018-2019"}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)

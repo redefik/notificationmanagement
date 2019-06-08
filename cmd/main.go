@@ -32,5 +32,6 @@ func main() {
 	r.HandleFunc("/notification_management/api/v1.0/course", resthandler.NewCourse).Methods(http.MethodPost)
 	r.HandleFunc("/notification_management/api/v1.0/course", resthandler.DeleteCourse).Methods(http.MethodDelete)
 	r.HandleFunc("/notification_management/api/v1.0/course/student/{studentMail}", resthandler.AddCourseSubscription).Methods(http.MethodPut)
+	r.HandleFunc("/notification_management/api/v1.0/course/student/{studentMail}", resthandler.RemoveCourseSubscription).Methods(http.MethodDelete)
 	log.Fatal(http.ListenAndServe(config.Configuration.ListeningAddress, r))
 }

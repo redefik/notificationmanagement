@@ -203,3 +203,48 @@ func AddCourseSubscription(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 }
+
+// RemoveCourseSubscription removes a student from the mailing list of the provided course
+func RemoveCourseSubscription(w http.ResponseWriter, r *http.Request) {
+	var requestBody entity.Course
+
+	//Parse the body of the request
+	jsonDecoder := json.NewDecoder(r.Body)
+	err := jsonDecoder.Decode(&requestBody)
+	if err != nil {
+		MakeErrorResponse(w, http.StatusBadRequest, "Bad request")
+		log.Println("Bad Request")
+		return
+	}
+
+	// Check if all the required fields have been provided in the body
+	requestBody.Name = strings.TrimSpace(requestBody.Name)
+	requestBody.Department = strings.TrimSpace(requestBody.Department)
+	requestBody.Year = strings.TrimSpace(requestBody.Year)
+
+	if !isValidBody(requestBody) {
+		MakeErrorResponse(w, http.StatusBadRequest, "Bad request")
+		log.Println("Bad Request")
+		return
+	}
+
+	urlParameters := mux.Vars(r)
+	studentMail := urlParameters["studentMail"]
+
+	// Try to remove the subscription
+	err = repository.RemoveStudent(requestBody, studentMail)
+	if err != nil {
+		// On error an appropriated status code is returned
+		if err == repository.NotFoundError {
+			MakeErrorResponse(w, http.StatusNotFound, "Course Not Found")
+			log.Println(err)
+			return
+		} else if err == repository.UnknownError {
+			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			log.Println(err)
+			return
+		}
+	}
+	// On success 200 OK is returned
+	w.WriteHeader(http.StatusOK)
+}

@@ -1,4 +1,4 @@
-package subscriptioncreation
+package subscriptiondeletion
 
 import (
 	"bytes"
@@ -19,11 +19,11 @@ import (
 	"testing"
 )
 
-// createTestMicroserviceCourseSubscriptionCreation builds an http handler used to test functionality about student subscriptions
+// createTestMicroserviceCourseSubscriptionDeletion builds an http handler used to test functionality about student subscriptions
 // to course's mailing list
-func createTestMicroserviceCourseSusbscriptionCreation() http.Handler {
+func createTestMicroserviceCourseSusbscriptionDeletion() http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/notification_management/api/v1.0/course/student/{studentMail}", resthandler.AddCourseSubscription).Methods(http.MethodPut)
+	r.HandleFunc("/notification_management/api/v1.0/course/student/{studentMail}", resthandler.RemoveCourseSubscription).Methods(http.MethodDelete)
 	return r
 }
 
@@ -32,7 +32,8 @@ func setup() {
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseCreationItem{CourseName: "testcoursesubscription_testdepartment_2018-2019"}
+	mailingList := []string{"isssr.ticketing@gmail.com", "other@mail.com"}
+	courseItem := repository.CourseItem{CourseName: "testcoursesubscription_testdepartment_2018-2019", MailingList: mailingList}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
@@ -79,58 +80,56 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// TestCourseCourseSubscriptionSuccess tests the following scenario: the client correctly add a subscription to the mailing list
+// TestCourseSubscriptionDeletionSuccess tests the following scenario: the client correctly remove a subscription from the mailing list
 // of a course.
-func TestCourseSubscriptionCreationSuccess(t *testing.T) {
+func TestCourseSubscriptionDeletionSuccess(t *testing.T) {
 
 	repository.InitializeDynamoDbClient()
 
-	// It is assumed that a course with the following information exists in the testing data-store
 	jsonBody := simplejson.New()
 	jsonBody.Set("name", "testcoursesubscription")
 	jsonBody.Set("department", "testdepartment")
 	jsonBody.Set("year", "2018-2019")
 
 	requestBody, _ := jsonBody.MarshalJSON()
-	request, _ := http.NewRequest(http.MethodPut, "/notification_management/api/v1.0/course/student/isssr.ticketing@gmail.com",
+	request, _ := http.NewRequest(http.MethodDelete, "/notification_management/api/v1.0/course/student/isssr.ticketing@gmail.com",
 		bytes.NewBuffer(requestBody))
 	request.Header.Set("Content-Type", "application/json")
 
 	response := httptest.NewRecorder()
-	handler := createTestMicroserviceCourseSusbscriptionCreation()
+	handler := createTestMicroserviceCourseSusbscriptionDeletion()
 	// simulates a request-response interaction between client and microservice
 	handler.ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Error("Expected 20O Ok but got " + strconv.Itoa(response.Code) + " " + http.StatusText(response.Code))
-
 	}
-}
 
-// TestCourseSubscriptionInvalidMail tests the following scenario: the student cannot be added to the mailing list
-// because the mail addressi is not valid
-func TestCourseSubscriptionInvalidMail(t *testing.T) {
-	repository.InitializeDynamoDbClient()
-
-	// It is assumed that a course with the following information exists in the testing data-store
-	jsonBody := simplejson.New()
-	jsonBody.Set("name", "testcoursesubscription")
-	jsonBody.Set("department", "testdepartment")
-	jsonBody.Set("year", "2018-2019")
-
-	requestBody, _ := jsonBody.MarshalJSON()
-	// the provided mail address does not exist
-	request, _ := http.NewRequest(http.MethodPut, "/notification_management/api/v1.0/course/student/isssr.ticketin@gmail.com",
-		bytes.NewBuffer(requestBody))
-	request.Header.Set("Content-Type", "application/json")
-
-	response := httptest.NewRecorder()
-	handler := createTestMicroserviceCourseSusbscriptionCreation()
-	// simulates a request-response interaction between client and microservice
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusBadRequest {
-		t.Error("Expected 400 Bad Request but got " + strconv.Itoa(response.Code) + " " + http.StatusText(response.Code))
-
+	// check if the mailing list is up-to-date
+	getItemInput := &dynamodb.GetItemInput{
+		TableName: aws.String(config.Configuration.CoursesTableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"CourseName": {
+				S: aws.String("testcoursesubscription_testdepartment_2018-2019"),
+			},
+		},
+	}
+	newSession := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	dynamodbClient := dynamodb.New(newSession)
+	getResult, err := dynamodbClient.GetItem(getItemInput)
+	if err != nil {
+		t.Error("Error in retrieving the updated course")
+	}
+	var updatedCourse repository.CourseItem
+	err = dynamodbattribute.UnmarshalMap(getResult.Item, &updatedCourse)
+	if err != nil {
+		t.Error("Error in retrieving the updated course")
+	}
+	for i := 0; i < len(updatedCourse.MailingList); i++ {
+		if updatedCourse.MailingList[i] == "isssr.ticketing@gmail.com" {
+			t.Error("Deletion not done")
+		}
 	}
 }
