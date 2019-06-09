@@ -9,7 +9,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/redefik/notificationmanagement/config"
-	"github.com/redefik/notificationmanagement/repository"
+	"github.com/redefik/notificationmanagement/coursehandler"
 	"github.com/redefik/notificationmanagement/resthandler"
 	"log"
 	"net/http"
@@ -32,7 +32,7 @@ func setup() {
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseCreationItem{CourseName: "testcoursesubscription_testdepartment_2018-2019"}
+	courseItem := coursehandler.CourseCreationItem{CourseName: "testcoursesubscription_testdepartment_2018-2019"}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
@@ -83,7 +83,7 @@ func TestMain(m *testing.M) {
 // of a course.
 func TestCourseSubscriptionCreationSuccess(t *testing.T) {
 
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	// It is assumed that a course with the following information exists in the testing data-store
 	jsonBody := simplejson.New()
@@ -110,7 +110,7 @@ func TestCourseSubscriptionCreationSuccess(t *testing.T) {
 // TestCourseSubscriptionInvalidMail tests the following scenario: the student cannot be added to the mailing list
 // because the mail addressi is not valid
 func TestCourseSubscriptionInvalidMail(t *testing.T) {
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	// It is assumed that a course with the following information exists in the testing data-store
 	jsonBody := simplejson.New()
@@ -120,7 +120,7 @@ func TestCourseSubscriptionInvalidMail(t *testing.T) {
 
 	requestBody, _ := jsonBody.MarshalJSON()
 	// the provided mail address does not exist
-	request, _ := http.NewRequest(http.MethodPut, "/notification_management/api/v1.0/course/student/isssr.ticketin@gmail.com",
+	request, _ := http.NewRequest(http.MethodPut, "/notification_management/api/v1.0/course/student/invalidMail",
 		bytes.NewBuffer(requestBody))
 	request.Header.Set("Content-Type", "application/json")
 

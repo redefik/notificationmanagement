@@ -9,7 +9,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/redefik/notificationmanagement/config"
-	"github.com/redefik/notificationmanagement/repository"
+	"github.com/redefik/notificationmanagement/coursehandler"
 	"github.com/redefik/notificationmanagement/resthandler"
 	"log"
 	"net/http"
@@ -31,7 +31,7 @@ func setup() {
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseCreationItem{CourseName: "testexistentcourse_testdepartment_2018-2019"}
+	courseItem := coursehandler.CourseCreationItem{CourseName: "testexistentcourse_testdepartment_2018-2019"}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
@@ -95,7 +95,7 @@ func TestMain(m *testing.M) {
 // is correctly done.
 func TestCourseCreationSuccess(t *testing.T) {
 
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	// It is assumed that a course with the following information does not exist in the testing data-store
 	jsonBody := simplejson.New()
@@ -121,7 +121,7 @@ func TestCourseCreationSuccess(t *testing.T) {
 // TestCourseCreationMissingField tests the following scenario: the course creation request lacks a field.
 // Therefore, the microservice response should be 400 Bad Request
 func TestCourseCreationMissingFields(t *testing.T) {
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	jsonBody := simplejson.New()
 	// the Name field lacks
@@ -145,7 +145,7 @@ func TestCourseCreationMissingFields(t *testing.T) {
 // TestCourseCreationConflictCourse tests the following scenario: the client asks for creating a course that already exists
 // The response should be 409 Conflict
 func TestCourseCreationConflictCourse(t *testing.T) {
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	jsonBody := simplejson.New()
 	jsonBody.Set("name", "testexistentcourse")
@@ -168,7 +168,7 @@ func TestCourseCreationConflictCourse(t *testing.T) {
 
 // TestCourseCreationInvalidField tests the attempt to create a course providing an invalid field
 func TestCourseCreationInvalidField(t *testing.T) {
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	jsonBody := simplejson.New()
 	jsonBody.Set("name", "testcourse")

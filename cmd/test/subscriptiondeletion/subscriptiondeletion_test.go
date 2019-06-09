@@ -9,7 +9,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/redefik/notificationmanagement/config"
-	"github.com/redefik/notificationmanagement/repository"
+	"github.com/redefik/notificationmanagement/coursehandler"
 	"github.com/redefik/notificationmanagement/resthandler"
 	"log"
 	"net/http"
@@ -33,7 +33,7 @@ func setup() {
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	mailingList := []string{"isssr.ticketing@gmail.com", "other@mail.com"}
-	courseItem := repository.CourseItem{CourseName: "testcoursesubscription_testdepartment_2018-2019", MailingList: mailingList}
+	courseItem := coursehandler.CourseItem{CourseName: "testcoursesubscription_testdepartment_2018-2019", MailingList: mailingList}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 // of a course.
 func TestCourseSubscriptionDeletionSuccess(t *testing.T) {
 
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	jsonBody := simplejson.New()
 	jsonBody.Set("name", "testcoursesubscription")
@@ -122,7 +122,7 @@ func TestCourseSubscriptionDeletionSuccess(t *testing.T) {
 	if err != nil {
 		t.Error("Error in retrieving the updated course")
 	}
-	var updatedCourse repository.CourseItem
+	var updatedCourse coursehandler.CourseItem
 	err = dynamodbattribute.UnmarshalMap(getResult.Item, &updatedCourse)
 	if err != nil {
 		t.Error("Error in retrieving the updated course")

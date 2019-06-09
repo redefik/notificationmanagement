@@ -1,4 +1,4 @@
-package repository
+package coursehandler
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 /*This package provides a set of functionality used to interact with the persistence layer
 that store information about the courses*/
 
-var dynamodbClient *dynamodb.DynamoDB
+var Client *dynamodb.DynamoDB
 
 // Ad hoc errors returned by the functions
 var UnknownError = errors.New("an unknown error occurred during the interaction with course data store")
@@ -33,13 +33,13 @@ type CourseCreationItem struct {
 	CourseName string
 }
 
-// initializeClient instantiate a DynamoDB client that will be then shared between the functions
-// that interact with the data-store
+// InitializeDynamoDbClient instantiate a DynamoDB client that will be used to make API requests to DynamoDB. The initialization
+// is performed once because, as reported in the documentation, the client is safe to be used concurrently
 func InitializeDynamoDbClient() {
 	sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	dynamodbClient = dynamodb.New(sessionInitializer)
+	Client = dynamodb.New(sessionInitializer)
 }
 
 // Add a course to the data store returning a not-nil value in case of error:
@@ -59,7 +59,7 @@ func CreateCourse(course entity.Course) error {
 		ConditionExpression: aws.String("attribute_not_exists(CourseName)"),
 		TableName:           aws.String(config.Configuration.CoursesTableName),
 	}
-	_, err = dynamodbClient.PutItem(putItemInput)
+	_, err = Client.PutItem(putItemInput)
 	if err != nil {
 		log.Println(err)
 		// check if AWS DynamoDB raised an error
@@ -91,7 +91,7 @@ func DeleteCourse(course entity.Course) error {
 		ConditionExpression: aws.String("attribute_exists(CourseName)"),
 		TableName:           aws.String(config.Configuration.CoursesTableName),
 	}
-	_, err := dynamodbClient.DeleteItem(deleteItemInput)
+	_, err := Client.DeleteItem(deleteItemInput)
 	if err != nil {
 		log.Println(err)
 		// check if AWS DynamoDB raised an error
@@ -141,7 +141,7 @@ func AddStudent(course entity.Course, studentMail string) error {
 		TableName:           aws.String(config.Configuration.CoursesTableName),
 	}
 
-	_, err := dynamodbClient.UpdateItem(updateItemInput)
+	_, err := Client.UpdateItem(updateItemInput)
 	if err != nil {
 		log.Println(err)
 		log.Println(err)
@@ -186,7 +186,7 @@ func RemoveStudent(course entity.Course, studentMail string) error {
 			},
 		},
 	}
-	getResult, err := dynamodbClient.GetItem(getItemInput)
+	getResult, err := Client.GetItem(getItemInput)
 	if err != nil {
 		log.Println(err)
 		return UnknownError
@@ -218,10 +218,40 @@ func RemoveStudent(course entity.Course, studentMail string) error {
 		Item:      marshaledCourse,
 		TableName: aws.String(config.Configuration.CoursesTableName),
 	}
-	_, err = dynamodbClient.PutItem(putItemInput)
+	_, err = Client.PutItem(putItemInput)
 	if err != nil {
 		log.Println(err)
 		return UnknownError
 	}
 	return nil
+}
+
+// GetCourseMailingList returns the mailing list associated to the course.
+// On error, the second return value has a not-nil value:
+// NotFoundError if the provided course does not exists
+// UnknownError otherwise
+func GetCourseMailingList(course entity.Course) ([]string, error) {
+	getItemInput := &dynamodb.GetItemInput{
+		TableName: aws.String(config.Configuration.CoursesTableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"CourseName": {
+				S: aws.String(course.Name + "_" + course.Department + "_" + course.Year),
+			},
+		},
+	}
+	getResult, err := Client.GetItem(getItemInput)
+	if err != nil {
+		log.Println(err)
+		return nil, UnknownError
+	}
+	var matchingCourse CourseItem
+	err = dynamodbattribute.UnmarshalMap(getResult.Item, &matchingCourse)
+	if err != nil {
+		log.Println(err)
+		return nil, UnknownError
+	}
+	if matchingCourse.CourseName == "" {
+		return nil, NotFoundError
+	}
+	return matchingCourse.MailingList, nil
 }

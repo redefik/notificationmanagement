@@ -9,7 +9,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	"github.com/gorilla/mux"
 	"github.com/redefik/notificationmanagement/config"
-	"github.com/redefik/notificationmanagement/repository"
+	"github.com/redefik/notificationmanagement/coursehandler"
 	"github.com/redefik/notificationmanagement/resthandler"
 	"log"
 	"net/http"
@@ -31,7 +31,7 @@ func setup() {
 	newSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	courseItem := repository.CourseCreationItem{CourseName: "testcoursedeletion_testdepartment_2018-2019"}
+	courseItem := coursehandler.CourseCreationItem{CourseName: "testcoursedeletion_testdepartment_2018-2019"}
 	marshaledCourse, err := dynamodbattribute.MarshalMap(courseItem)
 	if err != nil {
 		log.Println(err)
@@ -65,7 +65,7 @@ func TestMain(m *testing.M) {
 // is correctly done.
 func TestCourseDeletionSuccess(t *testing.T) {
 
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	// It is assumed that a course with the following information exists in the testing data-store
 	jsonBody := simplejson.New()
@@ -91,7 +91,7 @@ func TestCourseDeletionSuccess(t *testing.T) {
 // TestCourseDeletionNotFoundCourse tests the following scenario: the client tries to delete a not existent course.
 // Therefore, the microservice response should be 404 Not Found
 func TestCourseDeletionNotFoundCourse(t *testing.T) {
-	repository.InitializeDynamoDbClient()
+	coursehandler.InitializeDynamoDbClient()
 
 	jsonBody := simplejson.New()
 	// it is assumed that a course with the given information does not exist in the data store

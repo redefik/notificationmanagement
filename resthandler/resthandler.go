@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"github.com/badoux/checkmail"
 	"github.com/gorilla/mux"
+	"github.com/redefik/notificationmanagement/coursehandler"
 	"github.com/redefik/notificationmanagement/entity"
-	"github.com/redefik/notificationmanagement/repository"
 	"log"
 	"net/http"
 	"regexp"
@@ -69,14 +69,14 @@ func NewCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try to create the course
-	err = repository.CreateCourse(requestBody)
+	err = coursehandler.CreateCourse(requestBody)
 	if err != nil {
 		// On error an appropriated status code is returned
-		if err == repository.ConflictError {
+		if err == coursehandler.ConflictError {
 			MakeErrorResponse(w, http.StatusConflict, "Conflict - The course already exists")
 			log.Println(err)
 			return
-		} else if err == repository.UnknownError {
+		} else if err == coursehandler.UnknownError {
 			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			log.Println(err)
 			return
@@ -119,14 +119,14 @@ func DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try to create the course
-	err = repository.DeleteCourse(requestBody)
+	err = coursehandler.DeleteCourse(requestBody)
 	if err != nil {
 		// On error an appropriated status code is returned
-		if err == repository.NotFoundError {
+		if err == coursehandler.NotFoundError {
 			MakeErrorResponse(w, http.StatusNotFound, "Course Not Found")
 			log.Println(err)
 			return
-		} else if err == repository.UnknownError {
+		} else if err == coursehandler.UnknownError {
 			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			log.Println(err)
 			return
@@ -143,10 +143,10 @@ func isValidMail(mail string) bool {
 		return false
 	}
 	// Host Validation
-	err = checkmail.ValidateHost(mail)
-	if err != nil {
-		return false
-	}
+	//err = checkmail.ValidateHost(mail)
+	//if err != nil {
+	//	return false
+	//}
 	return true
 }
 
@@ -186,14 +186,14 @@ func AddCourseSubscription(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Try to add the subscription
-	err = repository.AddStudent(requestBody, studentMail)
+	err = coursehandler.AddStudent(requestBody, studentMail)
 	if err != nil {
 		// On error an appropriated status code is returned
-		if err == repository.NotFoundError {
+		if err == coursehandler.NotFoundError {
 			MakeErrorResponse(w, http.StatusNotFound, "Course Not Found")
 			log.Println(err)
 			return
-		} else if err == repository.UnknownError {
+		} else if err == coursehandler.UnknownError {
 			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			log.Println(err)
 			return
@@ -232,14 +232,14 @@ func RemoveCourseSubscription(w http.ResponseWriter, r *http.Request) {
 	studentMail := urlParameters["studentMail"]
 
 	// Try to remove the subscription
-	err = repository.RemoveStudent(requestBody, studentMail)
+	err = coursehandler.RemoveStudent(requestBody, studentMail)
 	if err != nil {
 		// On error an appropriated status code is returned
-		if err == repository.NotFoundError {
+		if err == coursehandler.NotFoundError {
 			MakeErrorResponse(w, http.StatusNotFound, "Course Not Found")
 			log.Println(err)
 			return
-		} else if err == repository.UnknownError {
+		} else if err == coursehandler.UnknownError {
 			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			log.Println(err)
 			return

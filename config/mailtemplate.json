@@ -1,0 +1,8 @@
+{
+  "Template": {
+    "TemplateName": "MailTemplate",
+    "SubjectPart": "[{{courseName}} {{year}}]",
+    "HtmlPart": "{{body}}",
+    "TextPart": "{{body}}"
+  }
+}

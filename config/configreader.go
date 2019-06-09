@@ -13,6 +13,11 @@ var Configuration Config
 type Config struct {
 	ListeningAddress string
 	CoursesTableName string
+	MessageQueueName string
+	PollingWaitTime  int64
+	AwsSesRegion     string
+	MailTemplate     string
+	MailAddress      string
 }
 
 func SetConfiguration(configFile string) error {
