@@ -14,11 +14,11 @@ import (
 )
 
 func isValidBody(body entity.Course) bool {
-	alphanumericPattern := regexp.MustCompile("^[a-zA-Z0-9]*$")
+	alphanumericPattern := regexp.MustCompile("^[a-zA-Z0-9 ]*$")
 	if !alphanumericPattern.MatchString(body.Name) {
 		return false
 	}
-	alphaPattern := regexp.MustCompile("^[a-zA-Z]*$")
+	alphaPattern := regexp.MustCompile("^[a-zA-Z ]*$")
 	if !alphaPattern.MatchString(body.Department) {
 		return false
 	}

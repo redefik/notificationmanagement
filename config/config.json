@@ -1,5 +1,5 @@
 {
-  "listeningAddress":"0.0.0.0:80",
+  "listeningAddress":"0.0.0.0:8080",
   "coursesTableName": "Courses",
   "messageQueueName": "NotificationQueue.fifo",
   "pollingWaitTime": 20,
