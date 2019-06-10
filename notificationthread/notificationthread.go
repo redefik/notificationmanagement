@@ -30,15 +30,13 @@ func Run() {
 	for {
 		var message entity.Notification
 		log.Println("Polling...")
-		readMessages, err := sqswrapper.ReadJsonMessageFromQueue(sqsClient, queueUrl, &message, config.Configuration.PollingWaitTime)
+		readMessages, messageHandler, err := sqswrapper.ReadJsonMessageFromQueue(sqsClient, queueUrl, &message, config.Configuration.PollingWaitTime)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 		if readMessages == 0 {
-			if i == 6 {
-				i = 1
-			} else {
+			if i < 6 {
 				i++
 			}
 			n := rand.Intn(i)
@@ -47,6 +45,7 @@ func Run() {
 			time.Sleep(sleepingTime * time.Second)
 			continue
 		}
+		i = 0 // After a successful read , the back-off algorithm is reset
 		log.Println("Sending notification requests...")
 		// send a mail containing the notification to the mailing list of the course
 		course := entity.Course{Name: message.Name, Department: message.Department, Year: message.Year}
@@ -60,5 +59,12 @@ func Run() {
 			log.Println("error in sending notification", err)
 			continue
 		}
+		// If the notification has been sent correctly, the message is removed from the message queue.
+		// This is made to prevent other consumers from reading again the message
+		err = sqswrapper.DeleteMessageFromQueue(sqsClient, queueUrl, messageHandler)
+		if err != nil {
+			log.Println("couldn't delete the message from the queue")
+		}
+
 	}
 }

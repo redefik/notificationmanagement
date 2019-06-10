@@ -35,8 +35,8 @@ func GetMessageQueueUrl(sqsClient *sqs.SQS, queueName string) (string, error) {
 // using the provided client. The result, in JSON format, is stored in the message
 // structure provided by the caller.
 // waitTime is the duration (in seconds) for which the call waits for a message to arrive in the queue before returning
-// The function returns the number of read messages (0 or 1) and an error
-func ReadJsonMessageFromQueue(sqsClient *sqs.SQS, queueUrl string, message interface{}, waitTime int64) (int, error) {
+// The function returns the number of read messages (0 or 1), the receipt handler of the message and an error
+func ReadJsonMessageFromQueue(sqsClient *sqs.SQS, queueUrl string, message interface{}, waitTime int64) (int, *string, error) {
 	receiveMessageInput := &sqs.ReceiveMessageInput{
 		QueueUrl:            &queueUrl,
 		MaxNumberOfMessages: aws.Int64(1),
@@ -45,26 +45,30 @@ func ReadJsonMessageFromQueue(sqsClient *sqs.SQS, queueUrl string, message inter
 	// polling
 	receiveMessageOutput, err := sqsClient.ReceiveMessage(receiveMessageInput)
 	if err != nil {
-		return 0, errors.New("error in retrieving message from queue:" + err.Error())
+		return 0, nil, errors.New("error in retrieving message from queue:" + err.Error())
 	}
 	receivedMessages := receiveMessageOutput.Messages
 	if len(receivedMessages) == 0 {
-		return 0, nil
+		return 0, nil, nil
 	}
 	// parsing
 	messageBody := *receivedMessages[0].Body
 	err = json.Unmarshal([]byte(messageBody), message)
 	if err != nil {
-		return 1, errors.New("error in parsing the received message:" + err.Error())
+		return 1, nil, errors.New("error in parsing the received message:" + err.Error())
 	}
-	// delete message from the queue to prevent other process it again
+	return 1, receivedMessages[0].ReceiptHandle, nil
+}
+
+// DeleteMessageFromQueue delete the message with the provided handler from the queue with the given url.
+func DeleteMessageFromQueue(sqsClient *sqs.SQS, queueUrl string, messageHandler *string) error {
 	deleteMessageInput := &sqs.DeleteMessageInput{
 		QueueUrl:      &queueUrl,
-		ReceiptHandle: receivedMessages[0].ReceiptHandle,
+		ReceiptHandle: messageHandler,
 	}
-	_, err = sqsClient.DeleteMessage(deleteMessageInput)
+	_, err := sqsClient.DeleteMessage(deleteMessageInput)
 	if err != nil {
-		return 1, errors.New("error in deleting the received message from the queue:" + err.Error())
+		return errors.New("error in deleting the received message from the queue:" + err.Error())
 	}
-	return 1, nil
+	return nil
 }
