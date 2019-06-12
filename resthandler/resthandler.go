@@ -197,6 +197,10 @@ func AddCourseSubscription(w http.ResponseWriter, r *http.Request) {
 			MakeErrorResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			log.Println(err)
 			return
+		} else if err == coursehandler.ConflictMailError {
+			MakeErrorResponse(w, http.StatusConflict, "Conflict - The mail has been already registered")
+			log.Println(err)
+			return
 		}
 	}
 	// On success 200 OK is returned

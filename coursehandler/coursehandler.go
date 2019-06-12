@@ -20,6 +20,7 @@ var Client *dynamodb.DynamoDB
 // Ad hoc errors returned by the functions
 var UnknownError = errors.New("an unknown error occurred during the interaction with course data store")
 var ConflictError = errors.New("a course with the provided information already exists")
+var ConflictMailError = errors.New("the mail already exists in the mailing list")
 var NotFoundError = errors.New("the provided course does not exist in the data store")
 
 // Encapsulates the fields of the DynamoDB item representing a course
@@ -110,11 +111,51 @@ func DeleteCourse(course entity.Course) error {
 	return nil
 }
 
+func contains(list []string, elem string) bool {
+	for i := 0; i < len(list); i++ {
+		if list[i] == elem {
+			return true
+		}
+	}
+	return false
+}
+
 // Add the provided mail to the list of mail address associated to the given course. So the student will receive news
 // about the course. The function returns a not-nil value in case of error:
 // - NotFoundError when the caller try to update a not existent course
 // - UnknownError otherwise
+// - ConflictMail when the e-mail already exists in the mailing list
 func AddStudent(course entity.Course, studentMail string) error {
+
+	// Search for the provided course
+	getItemInput := &dynamodb.GetItemInput{
+		TableName: aws.String(config.Configuration.CoursesTableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"CourseName": {
+				S: aws.String(course.Name + "_" + course.Department + "_" + course.Year),
+			},
+		},
+	}
+	getResult, err := Client.GetItem(getItemInput)
+	if err != nil {
+		log.Println(err)
+		return UnknownError
+	}
+	var matchingCourse CourseItem
+	err = dynamodbattribute.UnmarshalMap(getResult.Item, &matchingCourse)
+	if err != nil {
+		log.Println(err)
+		return UnknownError
+	}
+	if matchingCourse.CourseName == "" {
+		return NotFoundError
+	}
+
+	// check if the given mail does not exist in the mailing list
+	if contains(matchingCourse.MailingList, studentMail) {
+		return ConflictMailError
+	}
+
 	newMail := &dynamodb.AttributeValue{
 		S: aws.String(studentMail),
 	}
@@ -141,7 +182,7 @@ func AddStudent(course entity.Course, studentMail string) error {
 		TableName:           aws.String(config.Configuration.CoursesTableName),
 	}
 
-	_, err := Client.UpdateItem(updateItemInput)
+	_, err = Client.UpdateItem(updateItemInput)
 	if err != nil {
 		log.Println(err)
 		log.Println(err)
