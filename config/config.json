@@ -1,9 +1,11 @@
 {
-  "listeningAddress":"0.0.0.0:8080",
+  "listeningAddress":"0.0.0.0:80",
   "coursesTableName": "Courses",
   "messageQueueName": "NotificationQueue.fifo",
   "pollingWaitTime": 20,
   "awsSesRegion": "eu-west-1",
+  "awsSqsRegion": "eu-central-1",
+  "awsDynamoDbRegion": "eu-central-1",
   "mailTemplate": "MailTemplate",
   "mailAddress": "progettosdcc@gmail.com"
 }

@@ -8,13 +8,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/redefik/notificationmanagement/config"
 )
 
 // GetSqsClient builds a *sqs.SQS object that can be used to make requests to AWS SQS
 func GetSqsClient() *sqs.SQS {
-	sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
+	sessionInitializer := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(config.Configuration.AwsSqsRegion),
 	}))
+	//sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
+	//	SharedConfigState: session.SharedConfigEnable,
+	//}))
 	sqsClient := sqs.New(sessionInitializer)
 	return sqsClient
 }

@@ -11,13 +11,15 @@ var Configuration Config
 
 // Encapsulates the fields of the configuration file
 type Config struct {
-	ListeningAddress string
-	CoursesTableName string
-	MessageQueueName string
-	PollingWaitTime  int64
-	AwsSesRegion     string
-	MailTemplate     string
-	MailAddress      string
+	ListeningAddress  string
+	CoursesTableName  string
+	MessageQueueName  string
+	PollingWaitTime   int64
+	AwsSesRegion      string
+	AwsSqsRegion      string
+	AwsDynamoDbRegion string
+	MailTemplate      string
+	MailAddress       string
 }
 
 func SetConfiguration(configFile string) error {

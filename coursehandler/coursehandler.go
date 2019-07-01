@@ -37,9 +37,13 @@ type CourseCreationItem struct {
 // InitializeDynamoDbClient instantiate a DynamoDB client that will be used to make API requests to DynamoDB. The initialization
 // is performed once because, as reported in the documentation, the client is safe to be used concurrently
 func InitializeDynamoDbClient() {
-	sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
+	sessionInitializer := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(config.Configuration.AwsDynamoDbRegion),
 	}))
+	// TODO gestione regioni
+	//sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
+	//	SharedConfigState: session.SharedConfigEnable,
+	//}))
 	Client = dynamodb.New(sessionInitializer)
 }
 

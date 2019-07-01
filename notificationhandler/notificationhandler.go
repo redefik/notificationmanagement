@@ -17,12 +17,9 @@ var Client *ses.SES
 // InitializeSesClient instantiate a Sess client that will be used to make API requests to SES. The initialization
 // is performed once because, as reported in the documentation, the client is safe to be used concurrently
 func InitializeSesClient(region string) error {
-	newSession, err := session.NewSession(&aws.Config{
+	newSession := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(region),
-	})
-	if err != nil {
-		return errors.New("error in creating a new session" + err.Error())
-	}
+	}))
 	Client = ses.New(newSession)
 	return nil
 }
