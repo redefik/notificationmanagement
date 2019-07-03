@@ -40,7 +40,6 @@ func InitializeDynamoDbClient() {
 	sessionInitializer := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(config.Configuration.AwsDynamoDbRegion),
 	}))
-	// TODO gestione regioni
 	//sessionInitializer := session.Must(session.NewSessionWithOptions(session.Options{
 	//	SharedConfigState: session.SharedConfigEnable,
 	//}))

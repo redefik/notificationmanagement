@@ -29,7 +29,10 @@ func main() {
 	}
 	// The environment needed to make requests to AWS API is setup
 	coursehandler.InitializeDynamoDbClient()
-	notificationhandler.InitializeSesClient(config.Configuration.AwsSesRegion)
+	err = notificationhandler.InitializeSesClient(config.Configuration.AwsSesRegion)
+	if err != nil {
+		log.Println(err)
+	}
 	r := mux.NewRouter()
 	// Register the handlers for the various HTTP requests
 	r.HandleFunc("/", healthCheck).Methods(http.MethodGet)
